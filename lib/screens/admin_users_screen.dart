@@ -92,7 +92,7 @@ class AdminUsersScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder)
-              .withOpacity(0.3),
+              .withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -124,7 +124,7 @@ class AdminUsersScreen extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -174,7 +174,7 @@ class AdminUsersScreen extends StatelessWidget {
               border: Border(
                 top: BorderSide(
                   color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder)
-                      .withOpacity(0.2),
+                      .withValues(alpha: 0.2),
                 ),
               ),
             ),
@@ -196,7 +196,7 @@ class AdminUsersScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppTheme.danger.withOpacity(0.1),
+                      color: AppTheme.danger.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(

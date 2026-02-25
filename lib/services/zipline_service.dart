@@ -59,8 +59,9 @@ class ZiplineService {
         if (jsonResponse is List && jsonResponse.isNotEmpty) {
           final first = jsonResponse.first;
           if (first is String) return first;
-          if (first is Map && first.containsKey('url'))
+          if (first is Map && first.containsKey('url')) {
             return first['url'] as String;
+          }
         }
 
         throw Exception(

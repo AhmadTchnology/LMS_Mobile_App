@@ -6,7 +6,6 @@ import '../providers/announcement_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../theme/app_color_extension.dart';
-import '../theme/app_theme.dart';
 import '../models/announcement_model.dart';
 
 class AnnouncementsScreen extends StatelessWidget {
@@ -44,7 +43,7 @@ class AnnouncementsScreen extends StatelessWidget {
             border: Border(
               bottom: BorderSide(
                 color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder)
-                    .withOpacity(
+                    .withValues(alpha:
                       0.3,
                     ), // No change requested for this line in the diff
               ),
@@ -121,11 +120,11 @@ class AnnouncementsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder)
-              .withOpacity(0.3),
+              .withValues(alpha: 0.3),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -207,7 +206,7 @@ class AnnouncementsScreen extends StatelessWidget {
                                 radius: 10,
                                 backgroundColor: Theme.of(
                                   context,
-                                ).colorScheme.primary.withOpacity(0.1),
+                                ).colorScheme.primary.withValues(alpha: 0.1),
                                 child: Text(
                                   a.creatorName.isNotEmpty
                                       ? a.creatorName

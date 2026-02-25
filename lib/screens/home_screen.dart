@@ -4,7 +4,6 @@ import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/announcement_provider.dart';
-import '../services/firestore_service.dart';
 import '../theme/app_color_extension.dart';
 import 'lectures_screen.dart';
 import 'ai_chat_screen.dart';

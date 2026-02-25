@@ -342,7 +342,7 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder)
-              .withOpacity(0.3),
+              .withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -368,7 +368,7 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: typeBadgeColor.withOpacity(0.15),
+                  color: typeBadgeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -407,7 +407,7 @@ class _AdminAnnouncementsScreenState extends State<AdminAnnouncementsScreen> {
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.1),
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(

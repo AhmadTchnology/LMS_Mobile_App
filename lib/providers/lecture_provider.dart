@@ -38,19 +38,4 @@ class LectureProvider with ChangeNotifier {
     });
   }
 
-  Future<void> toggleFavorite(
-    String userId,
-    String lectureId,
-    bool isFavorite,
-  ) async {
-    await _firestoreService.toggleFavorite(userId, lectureId, isFavorite);
-  }
-
-  Future<void> toggleCompletion(
-    String userId,
-    String lectureId,
-    bool isComplete,
-  ) async {
-    await _firestoreService.toggleCompletion(userId, lectureId, isComplete);
-  }
 }

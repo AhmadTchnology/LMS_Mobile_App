@@ -97,8 +97,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           color: isDark
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-              : Theme.of(context).colorScheme.primary.withOpacity(0.05),
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
           child: Row(
             children: [
               Container(
@@ -200,7 +200,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             border: Border(
               top: BorderSide(
                 color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder)
-                    .withOpacity(0.3),
+                    .withValues(alpha: 0.3),
               ),
             ),
           ),
@@ -274,7 +274,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
           border: isAi
               ? Border.all(
                   color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder)
-                      .withOpacity(0.3),
+                      .withValues(alpha: 0.3),
                 )
               : null,
         ),

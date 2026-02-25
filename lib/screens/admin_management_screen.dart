@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'admin_users_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_color_extension.dart';
 import '../providers/auth_provider.dart';
@@ -686,6 +685,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
       _showSnackBar('Please fill all fields and select a file', isError: true);
       return;
     }
+    final uploaderName = Provider.of<AuthProvider>(context, listen: false).user?.name ?? 'Admin';
     setState(() => _isLoading = true);
 
     try {
@@ -703,9 +703,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
         stage: _lectureStage!,
         pdfUrl: uploadedUrl,
         uploadDate: DateTime.now().toIso8601String(),
-        uploadedBy:
-            Provider.of<AuthProvider>(context, listen: false).user?.name ??
-            'Admin',
+        uploadedBy: uploaderName,
       );
       await _firestoreService.addLecture(lecture);
       _lectureTitleCtrl.clear();

@@ -125,11 +125,11 @@ class FirestoreService {
     String lectureId,
     bool isFavorite,
   ) async {
-    await _firestore.collection('users').doc(userId).update({
+    await _firestore.collection('users').doc(userId).set({
       'favorites': isFavorite
           ? FieldValue.arrayUnion([lectureId])
           : FieldValue.arrayRemove([lectureId]),
-    });
+    }, SetOptions(merge: true));
   }
 
   /// Toggle lecture completion
@@ -138,11 +138,11 @@ class FirestoreService {
     String lectureId,
     bool isComplete,
   ) async {
-    await _firestore.collection('users').doc(userId).update({
+    await _firestore.collection('users').doc(userId).set({
       'completedLectures': isComplete
           ? FieldValue.arrayUnion([lectureId])
           : FieldValue.arrayRemove([lectureId]),
-    });
+    }, SetOptions(merge: true));
   }
 
   /// Mark announcement as read

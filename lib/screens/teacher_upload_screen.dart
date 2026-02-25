@@ -352,6 +352,9 @@ class _TeacherUploadScreenState extends State<TeacherUploadScreen> {
       );
       return;
     }
+    
+    final uploaderName = Provider.of<AuthProvider>(context, listen: false).user?.name ?? 'Teacher';
+
     setState(() => _isUploading = true);
     try {
       // 1. Upload the physical file to Zipline
@@ -368,9 +371,7 @@ class _TeacherUploadScreenState extends State<TeacherUploadScreen> {
         stage: _lectureStage!,
         pdfUrl: uploadedUrl,
         uploadDate: DateTime.now().toIso8601String(),
-        uploadedBy:
-            Provider.of<AuthProvider>(context, listen: false).user?.name ??
-            'Teacher',
+        uploadedBy: uploaderName,
       );
       await _firestoreService.addLecture(lecture);
       _lectureTitleCtrl.clear();

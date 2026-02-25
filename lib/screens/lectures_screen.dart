@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../providers/lecture_provider.dart';
 import '../providers/auth_provider.dart';
@@ -8,9 +8,10 @@ import '../providers/theme_provider.dart';
 import '../models/lecture_model.dart';
 import '../services/firestore_service.dart';
 import '../theme/app_color_extension.dart';
-import '../theme/app_color_extension.dart';
 import 'admin_management_screen.dart';
 import 'teacher_upload_screen.dart';
+import 'pdf_viewer_screen.dart';
+import 'package:intl/intl.dart';
 
 class LecturesScreen extends StatefulWidget {
   const LecturesScreen({super.key});
@@ -51,6 +52,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
     return Stack(
       children: [
         Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Search & Filters Header
             Container(
@@ -152,12 +154,11 @@ class _LecturesScreenState extends State<LecturesScreen> {
                             user?.completedLectures.contains(lecture.id) ??
                             false;
 
-                        return _buildLectureCard(
-                          context,
-                          lecture,
-                          isFavorite,
-                          isCompleted,
-                          isDark,
+                        return LectureCard(
+                          lecture: lecture,
+                          isFavorite: isFavorite,
+                          isCompleted: isCompleted,
+                          isDark: isDark,
                           userId: user?.id,
                           canManage: canManage,
                         );
@@ -248,19 +249,77 @@ class _LecturesScreenState extends State<LecturesScreen> {
     );
   }
 
-  Widget _buildLectureCard(
-    BuildContext context,
-    LectureModel l,
-    bool isFavorite,
-    bool isCompleted,
-    bool isDark, {
-    String? userId,
-    bool canManage = false,
-  }) {
-    final lectureProvider = Provider.of<LectureProvider>(
-      context,
-      listen: false,
+  Widget _buildEmptyState(bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off,
+            size: 64,
+            color: isDark ? AppTheme.textMuted : AppTheme.lightTextMuted,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No lectures found',
+            style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
+          ),
+        ],
+      ),
     );
+  }
+}
+
+class LectureCard extends StatelessWidget {
+  final LectureModel lecture;
+  final bool isFavorite;
+  final bool isCompleted;
+  final bool isDark;
+  final String? userId;
+  final bool canManage;
+
+  const LectureCard({
+    super.key,
+    required this.lecture,
+    required this.isFavorite,
+    required this.isCompleted,
+    required this.isDark,
+    this.userId,
+    this.canManage = false,
+  });
+
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      return DateFormat('yyyy-MM-dd').format(date);
+    } catch (e) {
+      return isoDate;
+    }
+  }
+
+  Widget _buildBadge(String text, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final l = lecture;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -269,18 +328,29 @@ class _LecturesScreenState extends State<LecturesScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder)
-              .withOpacity(0.3),
+              .withValues(alpha: 0.3),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: InkWell(
-        onTap: () => _openPdf(l.pdfUrl),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PdfViewerScreen(
+                pdfUrl: l.pdfUrl,
+                title: l.title,
+                isDark: isDark,
+              ),
+            ),
+          );
+        },
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -294,7 +364,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: context.colors.danger.withOpacity(0.1),
+                      color: context.colors.danger.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -330,36 +400,89 @@ class _LecturesScreenState extends State<LecturesScreen> {
                       ],
                     ),
                   ),
-                  // Favorite Toggle
-                  IconButton(
-                    icon: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite
-                          ? context.colors.danger
-                          : AppTheme.textMuted,
-                    ),
-                    onPressed: () {
+                  // Premium Favorite Toggle
+                  InkWell(
+                    onTap: () async {
+                      HapticFeedback.lightImpact();
                       if (userId != null) {
-                        lectureProvider.toggleFavorite(
-                          userId,
-                          l.id,
-                          !isFavorite,
-                        );
+                        try {
+                          await authProvider.toggleFavorite(
+                            l.id,
+                            !isFavorite,
+                          );
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to update favorite: $e'),
+                                backgroundColor: context.colors.danger,
+                              ),
+                            );
+                          }
+                        }
                       }
                     },
+                    borderRadius: BorderRadius.circular(24),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isFavorite 
+                            ? context.colors.danger.withValues(alpha: 0.12)
+                            : (isDark ? AppTheme.darkBorder : AppTheme.lightBorder).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: isFavorite 
+                              ? context.colors.danger.withValues(alpha: 0.5)
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            transitionBuilder: (child, animation) => ScaleTransition(
+                              scale: animation.drive(CurveTween(curve: Curves.elasticOut)),
+                              child: child,
+                            ),
+                            child: Icon(
+                              isFavorite ? Icons.bookmark : Icons.bookmark_add_outlined,
+                              key: ValueKey<bool>(isFavorite),
+                              size: 16,
+                              color: isFavorite ? context.colors.danger : AppTheme.textMuted,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 300),
+                            style: TextStyle(
+                              color: isFavorite ? context.colors.danger : AppTheme.textMuted,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                            child: Text(isFavorite ? 'Saved' : 'Save'),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                runSpacing: 12,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildBadge(l.stage, AppTheme.info, isDark),
                       const SizedBox(width: 8),
                       Text(
-                        l.uploadDate,
+                        _formatDate(l.uploadDate),
                         style: const TextStyle(
                           color: AppTheme.textMuted,
                           fontSize: 11,
@@ -367,55 +490,84 @@ class _LecturesScreenState extends State<LecturesScreen> {
                       ),
                     ],
                   ),
-                  // Completion Checkmark
+                  // Completion Checkmark with Fluid Animation
                   InkWell(
-                    onTap: () {
+                    onTap: () async {
                       if (userId != null) {
-                        lectureProvider.toggleCompletion(
-                          userId,
-                          l.id,
-                          !isCompleted,
-                        );
+                        try {
+                          await authProvider.toggleCompletion(
+                            l.id,
+                            !isCompleted,
+                          );
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to update completion: $e'),
+                                backgroundColor: context.colors.danger,
+                              ),
+                            );
+                          }
+                        }
                       }
                     },
-                    child: Container(
+                    borderRadius: BorderRadius.circular(20),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
                         color: isCompleted
-                            ? context.colors.success.withOpacity(0.1)
+                            ? context.colors.success.withValues(alpha: 0.15)
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isCompleted
                               ? context.colors.success
                               : (isDark
-                                    ? AppTheme.darkBorder
-                                    : AppTheme.lightBorder),
+                                  ? AppTheme.darkBorder
+                                  : AppTheme.lightBorder),
                         ),
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            isCompleted
-                                ? Icons.check_circle
-                                : Icons.radio_button_unchecked,
-                            size: 20,
-                            color: isCompleted
-                                ? context.colors.success
-                                : AppTheme.textMuted,
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            transitionBuilder: (child, animation) {
+                              return ScaleTransition(
+                                scale: animation.drive(
+                                  CurveTween(curve: Curves.elasticOut),
+                                ),
+                                child: child,
+                              );
+                            },
+                            child: Icon(
+                              isCompleted
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              key: ValueKey<bool>(isCompleted),
+                              size: 20,
+                              color: isCompleted
+                                  ? context.colors.success
+                                  : AppTheme.textMuted,
+                            ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            isCompleted ? 'Completed' : 'Mark Complete',
+                          AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
                             style: TextStyle(
                               color: isCompleted
                                   ? context.colors.success
                                   : AppTheme.textMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
+                            ),
+                            child: Text(
+                              isCompleted ? 'Completed' : 'Mark Complete',
                             ),
                           ),
                         ],
@@ -435,39 +587,102 @@ class _LecturesScreenState extends State<LecturesScreen> {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            title: const Text('Delete Lecture'),
-                            content: Text('Delete "${l.title}"?'),
+                            backgroundColor: isDark
+                                ? AppTheme.darkCard
+                                : AppTheme.lightCard,
+                            title: Text(
+                              'Delete Lecture',
+                              style: TextStyle(
+                                color: isDark
+                                    ? AppTheme.textPrimary
+                                    : AppTheme.lightTextPrimary,
+                              ),
+                            ),
+                            content: Text(
+                              'Are you sure you want to delete "${l.title}"? This cannot be undone.',
+                              style: TextStyle(
+                                color: isDark
+                                    ? AppTheme.textSecondary
+                                    : AppTheme.lightTextSecondary,
+                              ),
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, false),
                                 child: const Text('Cancel'),
                               ),
-                              TextButton(
+                              ElevatedButton(
                                 onPressed: () => Navigator.pop(ctx, true),
-                                child: Text(
-                                  'Delete',
-                                  style: TextStyle(
-                                    color: context.colors.danger,
-                                  ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: context.colors.danger,
+                                  foregroundColor: Colors.white,
                                 ),
+                                child: const Text('Delete'),
                               ),
                             ],
                           ),
                         );
+
                         if (confirm == true) {
-                          await FirestoreService().deleteLecture(l.id);
+                          try {
+                            // Show loading
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Deleting lecture...'),
+                                ),
+                              );
+                            }
+
+                            final firestore = FirestoreService();
+                            await firestore.deleteLecture(l.id);
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Lecture deleted successfully'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error deleting lecture: $e'),
+                                  backgroundColor: context.colors.danger,
+                                ),
+                              );
+                            }
+                          }
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: context.colors.danger.withOpacity(0.1),
-                          shape: BoxShape.circle,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                        child: Icon(
-                          Icons.delete_outline,
-                          color: context.colors.danger,
-                          size: 18,
+                        decoration: BoxDecoration(
+                          color: context.colors.danger.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.delete_outline,
+                              size: 16,
+                              color: context.colors.danger,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: context.colors.danger,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -478,59 +693,5 @@ class _LecturesScreenState extends State<LecturesScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildBadge(String text, Color color, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: isDark ? AppTheme.textMuted : AppTheme.lightTextMuted,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No lectures found',
-            style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _openPdf(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open PDF. Please check your connection.'),
-          ),
-        );
-      }
-    }
   }
 }
